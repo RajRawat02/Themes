@@ -5,11 +5,11 @@ import { ThemeSelectorContext } from './Theme';
 const axios = require('axios');
 
  const Dashboard = (props) => {
-  
+    let theme = localStorage.length !==0? localStorage.getItem('theme'):'Grey';
     const [token,setToken] =  useState('');
 
-    const { themeName, toggleTheme } = useContext(ThemeSelectorContext);
-    const [option, Setoption] = useState(localStorage.getItem('theme'));
+    const { themeName, toggleTheme, addtheme } = useContext(ThemeSelectorContext);
+    const [option, Setoption] = useState(theme);
     const options = [
       { value: 'one', label: 'Grey' },
       { value: 'two', label: 'Dark' },
@@ -22,6 +22,7 @@ const axios = require('axios');
 
     useEffect (() => {
       let token1 = localStorage.getItem('token');
+      toggleTheme(theme);
       if (!token1) {
         props.history.push('/login');
       } else {
@@ -29,35 +30,8 @@ const axios = require('axios');
       }
     },[])
 
-    /*useEffect(()=>{
-      console.log("token",token);
-      getTheme();
-    },[token]);
-
-
-    const getTheme = () => {
-      setLoading({ loading: true });
-      let userId = localStorage.getItem('user_id');
-      
-      axios.get('http://localhost:2000/get-theme', {
-        headers: {
-          'token': token
-        }
-      }).then((res) => {
-        Setoption( res.data.theme);
-        
-      }).catch((err) => {
-        swal({
-          text: err.response.data.errorMessage,
-          icon: "error",
-          type: "error"
-        });
-        setLoading({ loading: false });
-      });
-    }*/
-
     const logOut = () => {
-      localStorage.setItem('token', null);
+      localStorage.clear();
       props.history.push('/');
       toggleTheme('Grey');
     }
@@ -65,14 +39,13 @@ const axios = require('axios');
     return (
       
       <section>
-      <h1>My theme is {themeName}</h1>
       <Dropdown
         options={options}
         onChange={(o) => onSelect(o)}
         value={option}
         placeholder="Select an option"
       />
-      <button onClick={() => toggleTheme(option)}>Change Theme!</button>
+      <button onClick = {() => addtheme(option)}>Change Theme!</button>
       <button onClick={logOut}>log out </button>
       <p>
         This just happens to be the color pallette I use for my blog, but really

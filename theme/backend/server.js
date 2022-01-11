@@ -24,9 +24,7 @@ app.use("/", (req, res, next) => {
     if (req.path == "/login" || req.path == "/register" || req.path == "/") {
       next();
     } else {
-      console.log(JSON.stringify(req.headers.token))
       jwt.verify(req.headers.token, 'shhhhh11111', function (err, decoded) {
-        //console.log("decoded",decoded,JSON.stringify(req.headers.token));
         if (decoded && decoded.user) {
           req.user = decoded;
           userId = decoded.id;
@@ -56,29 +54,25 @@ app.get("/", (req, res) => {
 });
 
 /* login api */
-app.post("/login", (req, res) => {
+app.post("/login", async(req, res) => {
   try {
     if (req.body && req.body.username && req.body.password) {
-      user.find({ username: req.body.username }, (err, data) => {
-        if (data.length > 0) {
-
-          if (bcrypt.compareSync(data[0].password, req.body.password)) {
-            checkUserAndGenerateToken(data[0], req, res);
+      const data = await user.findOne({ username: req.body.username });
+        if (data) {
+          if (bcrypt.compareSync(data.password, req.body.password)) {
+            checkUserAndGenerateToken(data, req, res);
           } else {
-
             res.status(400).json({
               errorMessage: 'Username or password is incorrect!',
               status: false
             });
           }
-
         } else {
           res.status(400).json({
             errorMessage: 'Username or password is incorrect!',
             status: false
           });
         }
-      })
     } else {
       res.status(400).json({
         errorMessage: 'Add proper parameter first!',
@@ -95,49 +89,27 @@ app.post("/login", (req, res) => {
 });
 
 /* register api */
-app.post("/register", (req, res) => {
+app.post("/register", async (req, res) => {
   try {
     if (req.body && req.body.username && req.body.password) {
 
-      user.find({ username: req.body.username }, (err, data) => {
-
+      const data = await user.find({ username: req.body.username });
         if (data.length == 0) {
+          const new_theme = new theme();
+          new_theme.theme = 'Grey';
+          const savedtheme =  await new_theme.save();
 
           let User = new user({
             username: req.body.username,
-            password: req.body.password
+            password: req.body.password,
+            themeId: savedtheme._id 
           });
-          User.save((err, data) => {
-            if (err) {
-              res.status(400).json({
-                errorMessage: err,
-                status: false
-              });
-            } else {
-              
-                if (data) {
-
-                    let new_theme = new theme();
-                    new_theme.theme = '';
-                    new_theme._id = data._id;
-                    new_theme.save((err, data) => {
-                      if (err) {
-                        res.status(400).json({
-                          errorMessage: err,
-                          status: false
-                        });
-                      } else {
-                        res.status(200).json({
-                          status: true,
-                          title: 'Registered Successfully.'
-                        });
-                      }
-                    });
-              
-                }
-            }
+          await User.save();
+          res.json({
+            message: 'registered Successfully.',
+            status: true
           });
-
+          }
         } else {
           res.status(400).json({
             errorMessage: `UserName ${req.body.username} Already Exist!`,
@@ -145,15 +117,7 @@ app.post("/register", (req, res) => {
           });
         }
 
-      });
-
-    } else {
-      res.status(400).json({
-        errorMessage: 'Add proper parameter first!',
-        status: false
-      });
-    }
-  } catch (e) {
+    }catch (e) {
     res.status(400).json({
       errorMessage: 'Something went wrong!',
       status: false
@@ -162,42 +126,37 @@ app.post("/register", (req, res) => {
 });
 
 function checkUserAndGenerateToken(data, req, res) {
-  jwt.sign({ user: data.username, id: data._id }, 'shhhhh11111', { expiresIn: '1d' }, (err, token) => {
+   jwt.sign({ user: data.username, id: data._id }, 'shhhhh11111', { expiresIn: '1d' }, async(err, token) => {
     if (err) {
       res.status(400).json({
         status: false,
         errorMessage: err,
       });
     } else {
+      const newuser  = await data.populate('themeId');
+      const gettheme = await theme.findOne({_id: newuser.themeId});
       res.json({
         message: 'Login Successfully.',
         token: token,
         id:data._id,
+        theme: gettheme.theme,
         status: true
       });
     }
   });
 }
 
-app.patch("/add-theme", (req, res) => {
+app.patch("/add-theme", async(req, res) => {
   try {
     if (req.body && req.body.name) {
-      console.log("req",req.body,userId)
-      let new_theme = new theme();
-      new_theme.update({_id  : ObjectId(userId)}, {theme:req.body.name},(err, data) => {
-        if (err) {
-          res.status(400).json({
-            errorMessage: err,
-            status: false
-          });
-        } else {
+      const user1 = await user.findOne({_id:userId})
+      const data = await theme.updateOne({_id  : user1.themeId}, {theme:req.body.name});
+        if (data) { 
           res.status(200).json({
             status: true,
             title: 'Theme Added successfully.'
           });
         }
-      });
-
     } else {
       res.status(400).json({
         errorMessage: 'Add proper parameter first!',

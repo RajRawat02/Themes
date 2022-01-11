@@ -4,10 +4,10 @@ const axios = require('axios');
 
 const themes = {
   Dark: {
-    primary: '#dddddd',
+    primary: 'red',
     separatorColor: 'rgba(255,255,255,0.20)',
     textColor: 'white',
-    backgroundColor: '#121212',
+    backgroundColor: 'red',
     buttonColor: 'rgba(255,255,255,0.05)',
     blockquoteColor: 'rgba(255,255,255,0.20)',
     icon: 'white',
@@ -34,17 +34,23 @@ const themes = {
 
 const setCSSVariables = (theme) => {
   for (const value in theme) {
-    console.log(value);
     document.documentElement.style.setProperty(`--${value}`, theme[value]);
   }
 };
 
 export const ThemeSelectorContext = createContext({
-  themeName: 'Dark',
+  themeName: localStorage.getItem('theme'),
   toggleTheme: () => {},
 });
 
-const addtheme = (option) => {
+
+
+export default ({ children }) => {
+  let gettheme = localStorage.length !==0? localStorage.getItem('theme'):'Grey';
+  const [themeName, setThemeName] = useState(gettheme);
+  const [theme, setTheme] = useState(themes[themeName]);
+
+  const addtheme = (option) => {
 
     axios.patch('http://localhost:2000/add-theme', { name:option }, {
       headers: {
@@ -52,7 +58,7 @@ const addtheme = (option) => {
         'token': localStorage.getItem('token')
       }
     }).then((res) => {
-      console.log("res",res);
+      toggleTheme(option);
       swal({
         text: res.data.title,
         icon: "success",
@@ -69,15 +75,9 @@ const addtheme = (option) => {
 
   }
 
-export default ({ children }) => {
-  const [themeName, setThemeName] = useState('Light');
-  const [theme, setTheme] = useState(themes[themeName]);
-
   const toggleTheme = (value) => {
-    console.log("****************************",value)
-      addtheme(value);
-    setTheme(themes[value]);
-    setThemeName(value);
+      setTheme(themes[value]);
+      setThemeName(value);
   };
 
   useEffect(() => {
@@ -85,7 +85,7 @@ export default ({ children }) => {
   });
 
   return (
-    <ThemeSelectorContext.Provider value={{ themeName, toggleTheme }}>
+    <ThemeSelectorContext.Provider value={{ themeName, toggleTheme,addtheme }}>
       {children}
     </ThemeSelectorContext.Provider>
   );
